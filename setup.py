@@ -8,7 +8,7 @@ from setuptools.command.egg_info import egg_info
 from wheel.bdist_wheel import bdist_wheel
 
 sources = [
-    "bindings/python/tree_sitter_tcl/binding.c",
+    "bindings/python/repowise_tree_sitter_tcl/binding.c",
     "src/parser.c",
 ]
 if path.exists("src/scanner.c"):
@@ -32,9 +32,9 @@ class BuildPy(build_py):
         if path.isdir("queries"):
             # Editable installs import directly from the source package.
             if self.editable_mode:
-                package_dir = self.get_package_dir("tree_sitter_tcl")
+                package_dir = self.get_package_dir("repowise_tree_sitter_tcl")
             else:
-                package_dir = path.join(self.build_lib, "tree_sitter_tcl")
+                package_dir = path.join(self.build_lib, "repowise_tree_sitter_tcl")
             dest = path.join(package_dir, "queries")
             self.copy_tree("queries", dest)
         super().run()
@@ -59,10 +59,10 @@ setup(
     packages=find_packages("bindings/python"),
     package_dir={"": "bindings/python"},
     package_data={
-        "tree_sitter_tcl": ["*.pyi", "py.typed"],
-        "tree_sitter_tcl.queries": ["*.scm"],
+        "repowise_tree_sitter_tcl": ["*.pyi", "py.typed"],
+        "repowise_tree_sitter_tcl.queries": ["*.scm"],
     },
-    ext_package="tree_sitter_tcl",
+    ext_package="repowise_tree_sitter_tcl",
     ext_modules=[
         Extension(
             name="_binding",
