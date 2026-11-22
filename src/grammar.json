@@ -1196,7 +1196,7 @@
         },
         {
           "type": "SYMBOL",
-          "name": "simple_word"
+          "name": "_concat_word"
         }
       ]
     },

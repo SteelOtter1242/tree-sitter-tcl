@@ -253,7 +253,7 @@ module.exports = grammar({
 
     arguments: $ => choice(
       seq('{', repeat($.argument), '}'),
-      $.simple_word,
+      $._concat_word,
     ),
 
     number: $ => /[+-]?[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?/,
