@@ -89,10 +89,6 @@
           "named": true
         },
         {
-          "type": "quoted_word",
-          "named": true
-        },
-        {
           "type": "simple_word",
           "named": true
         },
@@ -310,7 +306,7 @@
             "named": true
           },
           {
-            "type": "braced_word",
+            "type": "braced_word_simple",
             "named": true
           },
           {

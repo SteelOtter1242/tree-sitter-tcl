@@ -313,3 +313,50 @@ set text "${name"
 --------------------------------------------------------------------------------
 
 (ERROR)
+================================================================================
+Literal closing brackets inside quoted words
+================================================================================
+
+puts "a]b"
+puts "if \{ \[some text] \} \{"
+helper "# notice!!! #"
+proc sentinel {} { other }
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (command (simple_word) (word_list (quoted_word)))
+  (command (simple_word) (word_list (quoted_word
+    (escaped_character) (escaped_character) (escaped_character) (escaped_character))))
+  (command (simple_word) (word_list (quoted_word)))
+  (procedure (simple_word) (arguments) (braced_word (command (simple_word)))))
+
+================================================================================
+Braced variable names followed by literal parentheses
+================================================================================
+
+regexp "${name}($|\ )" $text
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (regexp
+    (quoted_word (variable_substitution) (escaped_character))
+    (variable_substitution (id))))
+
+================================================================================
+Quote inside an unquoted word is literal
+================================================================================
+
+set n [helper prefix $a(i)+-+-" trailing]
+proc sentinel {} { other }
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (set (id)
+    (command_substitution
+      (command (simple_word)
+        (word_list (simple_word) (variable_substitution (id) (array_index (simple_word)))
+          (simple_word) (simple_word) (simple_word)))))
+  (procedure (simple_word) (arguments) (braced_word (command (simple_word)))))

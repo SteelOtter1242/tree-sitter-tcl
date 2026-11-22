@@ -207,3 +207,31 @@ foo bar\;baz
       (simple_word)
       (escaped_character)
       (simple_word))))
+================================================================================
+Literal exclamation marks in command arguments
+================================================================================
+
+helper !enabled foo!bar !
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (command
+    (simple_word)
+    (word_list
+      (simple_word) (simple_word)
+      (simple_word) (simple_word) (simple_word)
+      (simple_word))))
+
+================================================================================
+Braced command names are literal words
+================================================================================
+
+{"} {body}
+{helper arg}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (command (braced_word_simple) (word_list (braced_word (command (simple_word)))))
+  (command (braced_word_simple)))

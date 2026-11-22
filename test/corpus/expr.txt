@@ -41,3 +41,67 @@ expr {$var eq "sec" && $bar}
           (quoted_word))
         (variable_substitution
           (id))))))
+
+================================================================================
+Unbraced expressions, including a parenthesized expression
+================================================================================
+
+expr $a - $b
+expr $a + 3*5
+expr (($a + $b) * 2.5)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expr_cmd (expr (binop_expr (variable_substitution (id)) (variable_substitution (id)))))
+  (expr_cmd (expr (binop_expr (variable_substitution (id)) (binop_expr (number) (number)))))
+  (expr_cmd (expr (binop_expr (binop_expr (variable_substitution (id)) (variable_substitution (id))) (number)))))
+
+================================================================================
+Right-associative exponentiation and ternary operators
+================================================================================
+
+expr 2**3**2
+expr {2**3**2}
+expr 1 ? 2 : 3 ? 4 : 5
+expr {1 ? 2 : 3 ? 4 : 5}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expr_cmd (expr (binop_expr (number) (binop_expr (number) (number)))))
+  (expr_cmd (expr (binop_expr (number) (binop_expr (number) (number)))))
+  (expr_cmd (expr (ternary_expr (number) (number) (ternary_expr (number) (number) (number)))))
+  (expr_cmd (expr (ternary_expr (number) (number) (ternary_expr (number) (number) (number))))))
+
+================================================================================
+Numeric literals and braced right-hand operands
+================================================================================
+
+expr 0x10 + .5
+expr 0b10 + 5.
+expr $x + {2}
+expr $x ? {2} : 3
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expr_cmd (expr (binop_expr (number) (number))))
+  (expr_cmd (expr (binop_expr (number) (number))))
+  (expr_cmd (expr (binop_expr (variable_substitution (id)) (braced_word_simple))))
+  (expr_cmd (expr (ternary_expr (variable_substitution (id)) (braced_word_simple) (number)))))
+
+================================================================================
+Expressions do not consume following commands and procedures
+================================================================================
+
+set n [expr $a + 3*5]
+helper $value -flag
+proc sentinel {} { other }
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (set (id) (command_substitution (expr_cmd (expr (binop_expr (variable_substitution (id)) (binop_expr (number) (number)))))))
+  (command (simple_word) (word_list (variable_substitution (id)) (simple_word)))
+  (procedure (simple_word) (arguments) (braced_word (command (simple_word)))))
