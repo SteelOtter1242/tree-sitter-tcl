@@ -41,3 +41,25 @@ foreach item {*}$values {puts $item}
         (word_list
           (variable_substitution
             (id)))))))
+
+================================================================================
+Multiple variable and list pairs
+================================================================================
+
+foreach k {a b} v $values {
+  puts $k $v
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (foreach
+    (arguments (simple_word))
+    (braced_word_simple)
+    (arguments (simple_word))
+    (variable_substitution (id))
+    (braced_word
+      (command (simple_word)
+        (word_list
+          (variable_substitution (id))
+          (variable_substitution (id)))))))

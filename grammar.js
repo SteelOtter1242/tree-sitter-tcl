@@ -19,6 +19,14 @@ const PREC = {
 
 const interleaved1 = (rule, delim) => seq(rule, repeat(seq(delim, rule)));
 
+const scriptBody = $ => choice(
+  seq(
+    repeat1(seq(optional($._command), $._terminator)),
+    optional($._command),
+  ),
+  $._command,
+);
+
 const binaryExpr = (left, right) => choice(
   prec.right(PREC.exp, seq(left, '**', right)),
   prec.left(PREC.muldiv, seq(left, choice('/', '*', '%'), right)),
@@ -45,6 +53,10 @@ module.exports = grammar({
     $._immediate,
   ],
 
+  conflicts: $ => [
+    [$._concat_part, $.argument],
+  ],
+
   inline: $ => [
     $._builtin,
     $._braced_star,
@@ -57,13 +69,7 @@ module.exports = grammar({
   ],
 
   rules: {
-    source_file: $ => seq(
-      repeat(seq(
-        optional($._command),
-        $._terminator,
-      )),
-      optional($._command),
-    ),
+    source_file: $ => optional(scriptBody($)),
 
     _terminator: _ => choice('\n', ';'),
 
@@ -114,7 +120,6 @@ module.exports = grammar({
     unbraced_expr: $ => choice(
       alias($.unbraced_binop_expr, $.binop_expr),
       alias($.unbraced_ternary_expr, $.ternary_expr),
-      seq('(', $._unbraced_operand, ')'),
     ),
 
     _unbraced_operand: $ => choice(
@@ -139,7 +144,11 @@ module.exports = grammar({
       ':', choice($._unbraced_operand, $.braced_word_simple),
     )),
 
-    foreach: $ => seq('foreach', $.arguments, $._word_simple, $._word),
+    foreach: $ => seq(
+      'foreach',
+      repeat1(seq($.arguments, $._word_simple)),
+      $._word,
+    ),
 
     global: $ => seq('global', repeat($._concat_word)),
 
@@ -148,11 +157,9 @@ module.exports = grammar({
     try: $ => seq(
       'try',
       $._word,
-      optional(seq(
-        'on',
-        'error',
-        $.arguments,
-        $._word,
+      repeat(choice(
+        seq('on', choice('error', $._word_simple), $.arguments, $._word),
+        seq('trap', $._word_simple, optional($.arguments), $._word),
       )),
       optional($.finally),
     ),
@@ -186,22 +193,30 @@ module.exports = grammar({
     // Only braces at the start of a word suppress substitutions.
     _word_simple: $ => seq(optional($.unpack), $._word_simple_content),
 
+    _imm_word_sep: $ => prec(-1, alias(
+      choice(token.immediate(':'), token.immediate('('), token.immediate(')')),
+      $.simple_word,
+    )),
+
     _word_simple_content: $ => choice(
       $.braced_word_simple,
       seq(
-        choice($._word_simple_part, $.quoted_word),
-        repeat(seq($._concat, choice(
-          $._word_simple_part,
-          alias('"', $.simple_word),
-          $._unquoted_braces,
-        ))),
+        choice($._word_simple_part, $.quoted_word, alias('(', $.simple_word), alias(')', $.simple_word)),
+        repeat(choice(
+          seq($._concat, choice(
+            $._word_simple_part,
+            alias('"', $.simple_word),
+            $._unquoted_braces,
+          )),
+          $._imm_word_sep,
+        )),
       ),
     ),
 
     _word_simple_part: $ => choice(
       $.escaped_character,
       $.command_substitution,
-      $.simple_word,
+      prec.right(seq($.simple_word, optional($.array_index))),
       alias('!', $.simple_word),
       $.variable_substitution,
     ),
@@ -217,20 +232,23 @@ module.exports = grammar({
     _concat_part: $ => choice(
       $.escaped_character,
       $.command_substitution,
-      seq($.simple_word, optional($.array_index)),
+      prec.right(seq($.simple_word, optional($.array_index))),
       alias('!', $.simple_word),
       $.variable_substitution,
     ),
 
     _concat_word: $ => seq(
-      choice($._concat_part, $.quoted_word),
-      repeat(seq($._concat, choice($._concat_part, alias('"', $.simple_word)))),
+      choice($._concat_part, $.quoted_word, alias('(', $.simple_word), alias(')', $.simple_word)),
+      repeat(choice(
+        seq($._concat, choice($._concat_part, alias('"', $.simple_word))),
+        $._imm_word_sep,
+      )),
     ),
 
-    _ns_delim: _ => token.immediate(prec(1, '::')),
+    _ns_delim: _ => token.immediate(prec(1, /::+/)),
 
-    _ident_imm: _ => token.immediate(/[a-zA-Z_][a-zA-Z0-9_]*/),
-    _ident: _ => /[a-zA-Z_][a-zA-Z0-9_]*/,
+    _ident_imm: _ => token.immediate(/[a-zA-Z0-9_]+/),
+    _ident: _ => /[a-zA-Z0-9_]+/,
 
     _id_immediate: $ => seq(
       optional($._ns_delim), $._ident_imm,
@@ -242,24 +260,29 @@ module.exports = grammar({
       repeat(seq($._ns_delim, $._ident_imm)),
     ),
 
-    array_index: $ => seq(
+    array_index: $ => prec(1, seq(
       token.immediate('('),
+      optional($._word_with_substitutions),
+      repeat(seq(alias(':', $.simple_word), optional($._word_with_substitutions))),
+      ')',
+    )),
+
+    anon_array_index: $ => seq(
+      '(',
       optional($._word_with_substitutions),
       repeat(seq(alias(':', $.simple_word), optional($._word_with_substitutions))),
       ')',
     ),
 
     variable_substitution: $ => choice(
-      seq('$', alias($._id_immediate, $.id), optional($.array_index)),
+      prec.right(seq('$', alias($._id_immediate, $.id), optional($.array_index))),
+      seq('$', $.array_index),
       seq('$', '{', /[^}]+/, '}'),
     ),
 
     braced_word: $ => choice(
       $._braced_star,
-      seq('{', optional(seq(
-        interleaved1($._command, repeat1($._terminator)),
-        repeat($._terminator),
-      )), '}'),
+      seq('{', optional(scriptBody($)), '}'),
     ),
 
     // Braces nest, but quotes and substitutions are literal here.
@@ -276,19 +299,33 @@ module.exports = grammar({
 
     _braced_word_content: _ => token(/([^{}\\]|\\(.|\r|\n))+/),
 
+    _set_id: $ => prec.right(2, seq(alias($.simple_word, $.id), optional($.array_index))),
+
     set: $ => seq(
       'set',
       choice(
         field('name', $.braced_word_simple),
         seq(
-          alias($.simple_word, $.id),
-          optional($.array_index),
-          repeat(seq($._concat, choice($._concat_part, alias('"', $.simple_word)))),
+          $._set_id,
+          repeat(choice(
+            seq($._concat, choice($._concat_part, alias('"', $.simple_word))),
+            $._imm_word_sep,
+          )),
+        ),
+        seq(
+          alias($.anon_array_index, $.array_index),
+          repeat(choice(
+            seq($._concat, choice($._concat_part, alias('"', $.simple_word))),
+            $._imm_word_sep,
+          )),
         ),
         seq(
           choice($.variable_substitution, $.command_substitution, $.quoted_word,
             alias('!', $.id)),
-          repeat(seq($._concat, choice($._concat_part, alias('"', $.simple_word)))),
+          repeat(choice(
+            seq($._concat, choice($._concat_part, alias('"', $.simple_word))),
+            $._imm_word_sep,
+          )),
         ),
       ),
       optional($._word_simple),
@@ -336,7 +373,7 @@ module.exports = grammar({
       // As a mathematical function whose arguments have any of the above
       // forms for operands, such as sin($x). See MATH FUNCTIONS below for a
       // discussion of how mathematical functions are handled.
-      seq($.simple_word, '(', $._expr, ')'),
+      seq($.simple_word, '(', optional(interleaved1($._expr, ',')), ')'),
 
       // As a Tcl command enclosed in brackets. The command will be executed
       // and its result will be used as the operand.
@@ -369,6 +406,7 @@ module.exports = grammar({
 
     expr: $ => choice(
       seq('{', $._expr, '}'),
+      seq('(', $._unbraced_operand, ')'),
       $._expr_atom_no_brace,
       alias($.unbraced_unary_expr, $.unary_expr),
     ),
@@ -396,6 +434,7 @@ module.exports = grammar({
     elseif: $ => seq(
       'elseif',
       field('condition', $.expr),
+      optional('then'),
       field('consequence', $._word),
     ),
 
@@ -409,6 +448,7 @@ module.exports = grammar({
     if: $ => seq(
       'if',
       field('condition', $.expr),
+      optional('then'),
       field('consequence', $._word),
       repeat(field('alternative', $.elseif)),
       optional(field('alternative', choice($.else, alias($.implicit_else, $.else)))),
@@ -420,10 +460,11 @@ module.exports = grammar({
       $.elseif,
     ),
 
-    // catch script ?varName?
+    // catch script ?resultVarName? ?optionsVarName?
     catch: $ => seq(
       'catch',
       $._word,
+      optional($._concat_word),
       optional($._concat_word),
     ),
 
@@ -444,7 +485,7 @@ module.exports = grammar({
 
     _quoted_word_content: _ => token(prec(-1, /[^$\\\[\]"]+/)),
 
-    command_substitution: $ => seq('[', $._command, ']'),
+    command_substitution: $ => seq('[', optional(scriptBody($)), ']'),
 
     simple_word: _ => /[^!$\s\\\[\]{}();"]+/,
   },

@@ -235,3 +235,66 @@ Braced command names are literal words
 (source_file
   (command (braced_word_simple) (word_list (braced_word (command (simple_word)))))
   (command (braced_word_simple)))
+
+================================================================================
+Leading terminators in braced blocks and multi-command substitutions
+================================================================================
+
+if {$v} { ; # comment
+  helper
+}
+set out [setup; compute $v]
+set cont [helper alpha beta\
+  ]
+set empty []
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (if
+    (expr (variable_substitution (id)))
+    (braced_word
+      (comment)
+      (command (simple_word))))
+  (set (id)
+    (command_substitution
+      (command (simple_word))
+      (command (simple_word) (word_list (variable_substitution (id))))))
+  (set (id)
+    (command_substitution
+      (command (simple_word)
+        (word_list (simple_word) (simple_word)))))
+  (set (id)
+    (command_substitution)))
+
+================================================================================
+Try with trap and on handlers, and catch with options variable
+================================================================================
+
+catch {risky} msg opts
+try {
+  work
+} trap {MY ERR} {msg opts} {
+  recover
+} on ok {} {
+  finish
+} finally {
+  cleanup
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (catch
+    (braced_word (command (simple_word)))
+    (simple_word)
+    (simple_word))
+  (try
+    (braced_word (command (simple_word)))
+    (braced_word_simple)
+    (arguments (argument (simple_word)) (argument (simple_word)))
+    (braced_word (command (simple_word)))
+    (simple_word)
+    (arguments)
+    (braced_word (command (simple_word)))
+    (finally (braced_word (command (simple_word))))))

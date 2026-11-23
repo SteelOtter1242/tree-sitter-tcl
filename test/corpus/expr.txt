@@ -105,3 +105,18 @@ proc sentinel {} { other }
   (set (id) (command_substitution (expr_cmd (expr (binop_expr (variable_substitution (id)) (binop_expr (number) (number)))))))
   (command (simple_word) (word_list (variable_substitution (id)) (simple_word)))
   (procedure (simple_word) (arguments) (braced_word (command (simple_word)))))
+
+================================================================================
+Zero- and multi-argument math functions
+================================================================================
+
+expr {rand()}
+expr {max($a, $b)}
+expr max($a,2)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expr_cmd (expr (simple_word)))
+  (expr_cmd (expr (simple_word) (variable_substitution (id)) (variable_substitution (id))))
+  (expr_cmd (expr (simple_word) (variable_substitution (id)) (number))))
