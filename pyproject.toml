@@ -3,9 +3,9 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tree-sitter-tcl"
-description = "Tcl grammar for tree-sitter"
-version = "1.1.0"
+name = "repowise-tree-sitter-tcl"
+description = "Repowise's Tcl grammar for tree-sitter"
+version = "0.1.0"
 keywords = ["incremental", "parsing", "tree-sitter", "tcl"]
 classifiers = [
   "Intended Audience :: Developers",

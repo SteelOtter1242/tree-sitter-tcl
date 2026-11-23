@@ -15,6 +15,33 @@ set foo($i) 1
     (simple_word)))
 
 ================================================================================
+Array indices with a colon between substitutions
+================================================================================
+
+set a($x:$y) 1
+puts $a($x:$y)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (set
+    (id)
+    (array_index
+      (variable_substitution (id))
+      (simple_word)
+      (variable_substitution (id)))
+    (simple_word))
+  (command
+    (simple_word)
+    (word_list
+      (variable_substitution
+        (id)
+        (array_index
+          (variable_substitution (id))
+          (simple_word)
+          (variable_substitution (id)))))))
+
+================================================================================
 Set and read an array element with a literal index
 ================================================================================
 

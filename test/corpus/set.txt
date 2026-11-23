@@ -79,3 +79,36 @@ set {foo bar
 --------------------------------------------------------------------------------
 
 (ERROR)
+================================================================================
+Namespace-qualified variable names
+================================================================================
+
+set ns::value 1
+set ::ns::items($key) 2
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (set (id) (simple_word))
+  (set (id) (array_index (variable_substitution (id))) (simple_word)))
+
+================================================================================
+Dynamic and punctuated variable names
+================================================================================
+
+set ::.state::items($key) 2
+set $name 3
+set "quoted name" 4
+set [helper] 5
+set /path/name 6
+set $prefix.suffix 7
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (set (id) (array_index (variable_substitution (id))) (simple_word))
+  (set (variable_substitution (id)) (simple_word))
+  (set (quoted_word) (simple_word))
+  (set (command_substitution (command (simple_word))) (simple_word))
+  (set (id) (simple_word))
+  (set (variable_substitution (id)) (simple_word) (simple_word)))

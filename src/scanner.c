@@ -14,8 +14,8 @@ bool tree_sitter_tcl_external_scanner_scan(void *payload, TSLexer *lexer,
                                           const bool *valid_symbols) {
   int32_t c = lexer->lookahead;
 
-  // Check adjacency without consuming input.
-  if (valid_symbols[IMMEDIATE] && !lexer->eof(lexer) && !iswspace(c)) {
+  // Check adjacency without consuming input; backslash-newline separates words.
+  if (!lexer->eof(lexer) && !iswspace(c)) {
     lexer->mark_end(lexer);
     if (c == '\\') {
       lexer->advance(lexer, false);
@@ -24,21 +24,22 @@ bool tree_sitter_tcl_external_scanner_scan(void *payload, TSLexer *lexer,
       }
       if (lexer->lookahead == '\n') return false;
     }
-    lexer->result_symbol = IMMEDIATE;
-    return true;
-  }
 
-  if (valid_symbols[CONCAT] && (
-        !lexer->eof(lexer) &&
-        !iswspace(c) &&
+    if (valid_symbols[IMMEDIATE]) {
+      lexer->result_symbol = IMMEDIATE;
+      return true;
+    }
+
+    if (valid_symbols[CONCAT] &&
         c != '(' &&
         c != ')' &&
         c != ';' &&
         c != ':' &&
         c != '}' &&
-        c != ']')) {
-    lexer->result_symbol = CONCAT;
-    return true;
+        c != ']') {
+      lexer->result_symbol = CONCAT;
+      return true;
+    }
   }
 
   return false;
